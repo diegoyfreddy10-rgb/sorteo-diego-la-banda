@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101014">
+  <title>Sorteo Navidad y Año Nuevo | DIEGO Y LA BANDA</title>
+  <style>
+    :root { --bg:#101014; --panel:#1b1b23; --red:#ef3434; --gold:#f6c85f; --text:#f7f7fb; --muted:#b9bac5; --green:#35c878; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial,Helvetica,sans-serif; color:var(--text); background:radial-gradient(circle at top,#342027 0,#15151b 42%,#0c0c10 100%); min-height:100vh; }
+    .wrap { width:min(100% - 28px,1050px); margin:0 auto; padding:30px 0 50px; }
+    header { text-align:center; padding:24px 14px 26px; }
+    .eyebrow { color:var(--gold); letter-spacing:3px; font-size:12px; font-weight:bold; }
+    h1 { margin:12px 0 8px; font-size:clamp(29px,6vw,54px); line-height:1.05; text-transform:uppercase; }
+    h1 span { color:var(--red); }
+    .subtitle { color:var(--muted); margin:0 auto; max-width:620px; line-height:1.5; }
+    .panel { background:rgba(27,27,35,.94); border:1px solid #393943; border-radius:18px; padding:20px; box-shadow:0 18px 50px #0006; }
+    .legend { display:flex; flex-wrap:wrap; gap:12px 20px; justify-content:center; margin:0 0 18px; color:var(--muted); font-size:13px; }
+    .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
+    .available-dot { background:var(--green); } .unavailable-dot { background:#777985; } .selected-dot { background:var(--gold); }
+    .summary { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin:4px 0 16px; }
+    .summary strong { font-size:17px; } .summary small { color:var(--muted); }
+    .grid { display:grid; grid-template-columns:repeat(10,minmax(0,1fr)); gap:8px; }
+    .num { border:1px solid #3b3c47; border-radius:9px; background:#252630; color:#fff; min-height:43px; font-weight:bold; font-size:14px; cursor:pointer; }
+    .num.available { border-color:#26794f; background:#163c2c; }
+    .num.available:hover { transform:translateY(-1px); border-color:var(--green); }
+    .num.selected { color:#17130a; background:var(--gold); border-color:var(--gold); }
+    .num.unavailable { opacity:.42; cursor:not-allowed; text-decoration:line-through; }
+    .below { margin-top:18px; display:grid; gap:14px; }
+    .selection { color:var(--muted); line-height:1.5; min-height:22px; }
+    .actions { display:flex; flex-wrap:wrap; gap:10px; }
+    button.action { border:0; border-radius:11px; padding:14px 18px; font-weight:bold; cursor:pointer; font-size:15px; }
+    .whatsapp { color:#062b18; background:#39d47c; flex:1; }
+    .clear { color:#fff; background:#393943; }
+    .notice { color:var(--muted); font-size:13px; line-height:1.5; text-align:center; }
+    .status { text-align:center; font-size:13px; color:var(--muted); margin-top:15px; }
+    .status.error { color:#ff9a9a; }
+    footer { text-align:center; color:#888995; font-size:12px; padding:22px 0 0; }
+    @media(max-width:650px) { .wrap{width:min(100% - 18px,1050px);padding-top:12px}.panel{padding:13px}.grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}.num{min-height:45px;font-size:15px}.summary{align-items:flex-start;flex-direction:column} }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="eyebrow">GRAN SORTEO · NAVIDAD Y AÑO NUEVO</div>
+      <h1>DIEGO <span>Y LA BANDA</span></h1>
+      <p class="subtitle">Elegí tus números disponibles y consultanos por WhatsApp para coordinar el pago.</p>
+    </header>
+
+    <section class="panel">
+      <div class="legend">
+        <span><i class="dot available-dot"></i>Disponible</span>
+        <span><i class="dot selected-dot"></i>Tu selección</span>
+        <span><i class="dot unavailable-dot"></i>No disponible</span>
+      </div>
+      <div class="summary">
+        <strong>Elegí tus números</strong>
+        <small id="count">Cargando números…</small>
+      </div>
+      <div id="numbers" class="grid" aria-label="Números del sorteo"></div>
+      <div class="below">
+        <div id="selection" class="selection">Todavía no seleccionaste ningún número.</div>
+        <div class="actions">
+          <button id="whatsapp" class="action whatsapp" type="button">Consultar por WhatsApp</button>
+          <button id="clear" class="action clear" type="button">Limpiar selección</button>
+        </div>
+        <p class="notice">La selección no reserva ni bloquea números. La disponibilidad se confirma al coordinar por WhatsApp. Podés pagar por transferencia, Mercado Pago o efectivo.</p>
+        <div id="status" class="status">Conectando con el sorteo…</div>
+      </div>
+    </section>
+    <footer>© DIEGO Y LA BANDA · Cumbia chaqueña</footer>
+  </main>
+
+  <!-- CONFIGURACIÓN: reemplazá SOLO el texto de SUPABASE_ANON_KEY por tu clave sb_publishable. -->
+  <script>
+    const SUPABASE_URL = "https://uzrpbohdnanaoybrngyp.supabase.co";
+    const SUPABASE_ANON_KEY = "PEGAR_AQUI_TU_CLAVE_sb_publishable";
+    // Reemplazá 549XXXXXXXXXX por tu WhatsApp con código de país y área, solo números.
+    // Argentina: 549 + característica sin 0 + número sin 15.
+    const WHATSAPP_NUMBER = "549XXXXXXXXXX";
+
+    const grid = document.getElementById("numbers");
+    const count = document.getElementById("count");
+    const selectionText = document.getElementById("selection");
+    const statusBox = document.getElementById("status");
+    const selected = new Set();
+    let unavailable = new Set();
+
+    function render() {
+      grid.innerHTML = "";
+      for (let n = 1; n <= 200; n++) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = String(n);
+        b.className = "num";
+        if (unavailable.has(n)) {
+          b.classList.add("unavailable");
+          b.disabled = true;
+          b.title = "No disponible";
+        } else {
+          b.classList.add("available");
+          if (selected.has(n)) b.classList.add("selected");
+          b.addEventListener("click", () => {
+            if (selected.has(n)) selected.delete(n);
+            else selected.add(n);
+            render();
+          });
+        }
+        grid.appendChild(b);
+      }
+      const nums = [...selected].sort((a,b)=>a-b);
+      count.textContent = `${200 - unavailable.size} disponibles · ${unavailable.size} no disponibles`;
+      selectionText.textContent = nums.length
+        ? `Seleccionaste ${nums.length}: ${nums.join(", ")}`
+        : "Todavía no seleccionaste ningún número.";
+    }
+
+    async function loadNumbers() {
+      try {
+        if (SUPABASE_ANON_KEY.includes("PEGAR_AQUI")) {
+          statusBox.textContent = "Falta configurar la clave publicable de Supabase en este archivo.";
+          statusBox.classList.add("error");
+          render();
+          return;
+        }
+        const response = await fetch(
+          `${SUPABASE_URL}/rest/v1/numeros_sorteo?select=numero,estado&order=numero.asc`,
+          { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } }
+        );
+        if (!response.ok) throw new Error(`Supabase respondió ${response.status}. Revisá la clave y los permisos de lectura (RLS).`);
+        const rows = await response.json();
+        unavailable = new Set(rows.filter(r => String(r.estado || "").toLowerCase() !== "disponible").map(r => Number(r.numero)));
+        statusBox.textContent = "Números actualizados desde Supabase.";
+        statusBox.classList.remove("error");
+        render();
+      } catch (err) {
+        statusBox.textContent = `No se pudieron cargar los números: ${err.message}`;
+        statusBox.classList.add("error");
+        render();
+      }
+    }
+
+    document.getElementById("clear").addEventListener("click", () => {
+      selected.clear();
+      render();
+    });
+
+    document.getElementById("whatsapp").addEventListener("click", () => {
+      const nums = [...selected].sort((a,b)=>a-b);
+      if (!nums.length) {
+        alert("Primero elegí uno o más números disponibles.");
+        return;
+      }
+      if (WHATSAPP_NUMBER.includes("X")) {
+        alert("Falta configurar el número de WhatsApp en este archivo.");
+        return;
+      }
+      const message = `Hola! Quiero consultar por estos números del sorteo de DIEGO Y LA BANDA: ${nums.join(", ")}. ¿Me confirmás si siguen disponibles y cómo puedo pagar?`;
+      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`, "_blank");
+    });
+
+    loadNumbers();
+  </script>
+</body>
+</html>
