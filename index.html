@@ -130,7 +130,7 @@
         );
         if (!response.ok) throw new Error(`Supabase respondió ${response.status}. Revisá la clave y los permisos de lectura (RLS).`);
         const rows = await response.json();
-        unavailable = new Set(rows.filter(r => String(r.estado || "").toLowerCase() !== "disponible").map(r => Number(r.numero)));
+        unavailable = new Set(rows.filter(r => String(r.estado || "").trim().toLowerCase()
         statusBox.textContent = "Números actualizados desde Supabase.";
         statusBox.classList.remove("error");
         render();
