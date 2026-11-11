@@ -132,7 +132,7 @@ const selected=new Set();
 const buttons={};
 let statuses={};
 const statusLabels={available:'disponible',sold:'vendido'};
-function pad(n){return String(n).padStart(3,'0')}
+function pad(n){return String(n)}
 function update(){
   const summary=document.getElementById('summary');
   if(summary) summary.textContent=selected.size ? `Seleccionaste ${selected.size} número(s): ${[...selected].sort((a,b)=>a-b).map(pad).join(', ')}` : 'Todavía no seleccionaste números.';
