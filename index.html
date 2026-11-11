@@ -148,9 +148,9 @@ function paintNumber(n){
 function paintAll(){for(let i=1;i<=200;i++)paintNumber(i)}
 async function loadStatuses(){
   if(!sb){ document.getElementById('connectionMsg')?.replaceChildren(document.createTextNode('Modo vista previa: falta configurar Supabase.')); return; }
-  const {data,error}=await sb.from('raffle_numbers').select('number,is_sold');
+  const {data,error}=await sb.from('numeros_sorteo').select('numero,estado');
   if(error){console.error(error);return}
-  statuses={}; (data||[]).forEach(row=>{if(row.is_sold)statuses[row.number]='sold'});
+  statuses={}; (data||[]).forEach(row=>{if(row.estado==='vendido')statuses[row.numero]='sold'});
   paintAll();
 }
 for(let i=1;i<=200;i++){
@@ -210,9 +210,9 @@ document.getElementById('markSold')?.addEventListener('click',()=>setSold(true))
 document.getElementById('markAvailable')?.addEventListener('click',()=>setSold(false));
 if(sb){
   sb.auth.getSession().then(({data})=>{if(data.session)showAdmin(data.session.user)});
-  sb.channel('raffle-live').on('postgres_changes',{event:'*',schema:'public',table:'raffle_numbers'},payload=>{
+  sb.channel('raffle-live').on('postgres_changes',{event:'*',schema:'public',table:'numeros_sorteo'},payload=>{
     const row=payload.new||payload.old; if(!row?.number)return;
-    if(row.is_sold)statuses[row.number]='sold';else delete statuses[row.number];
+   if(row.estado==='vendido')statuses[row.numero]='sold';else delete statuses[row.numero];
     selected.delete(row.number);paintNumber(row.number);update();
   }).subscribe();
 }
